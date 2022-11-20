@@ -1,0 +1,159 @@
+   word count 
+
+import org.apache.spark.SparkContext
+import org.apache.log4j.Level
+import org.apache.log4j.Logger
+
+object wordcount extends App {
+  
+  Logger.getLogger("org").setLevel(Level.ERROR)
+
+  val sc = new SparkContext("local[*]","wordcount")
+
+  val rdd1 = sc.textFile("D:/syam/wordcount.txt")
+
+  val rdd2 = rdd1.flatMap(x=>(x.split(" ")))
+
+  val rdd3 = rdd2.map(x=>(x,1))
+
+  val rdd4 = rdd3.reduceByKey((x,y)=>x+y)
+
+  rdd4.foreach(println)
+}
+
+=================================================================================
+
+
+    movie ratings
+
+
+import org.apache.spark.SparkContext
+
+
+object moviedata {
+  def main (args: Array[String]):Unit = {
+
+  val sc = new SparkContext("local[*]","moviedata")
+
+  val input = sc.textFile("D:/syam/moviedata.txt")
+
+  val mappedInput = input.map(x=>x.split("\t")(2))
+
+  val ratings = mappedInput.map(x=>(x,1))
+
+  val reducedRatings = ratings.reduceByKey((x,y)=>x+y)
+
+  val results = reducedRatings.collect
+
+  results.foreach(println)
+  
+  
+  }
+}
+==========================================================================================
+
+      customer orders
+
+import org.apache.spark.SparkContext
+
+object customercount {
+  def main (args: Array[String]):Unit={
+
+  val sc = new SparkContext("local[*]","customerorders")
+
+  val rdd1 = sc.textFile("D:/syam/customerorders.csv")
+
+  val rdd2 = rdd1.map(x=>(x.split(",")(0),x.split(",")(2).toFloat))
+
+  val rdd3 = rdd2.reduceByKey((x,y)=>x+y)
+
+  val rdd4 = rdd3.sortBy(x=>x._2)
+
+  rdd4.collect()
+  rdd4.foreach(println)
+}
+}
+
+=======================================================================================
+
+object friendsdata extends App{
+  
+  def parseLine (line: String) = {
+    val fields = line.split(",")
+    val age = fields(2).toInt
+    val numFriends = fields(3).toInt
+    (age,numFriends)
+  }
+  
+  Logger.getLogger("org").setLevel(Level.ERROR)
+  
+  val sc = new SparkContext("local[*]","friendsdata")
+  
+  val input = sc.textFile("/users/syam/Downloads/friendsdata.csv")
+  
+  val mappedInput = input.map(parseLine)
+  
+  val mappedFinal = mappedInput.mapValues(x => (x,1))
+  
+  val totalsByAge = mappedFinal.reduceByKey((x,y) => (x._1 + y._1, x._2 + y._2))
+  
+  val averagesByAge = totalsByAge.mapValues (x => x._1/x._2).sortBy(x => x._2)
+  
+  averagesByAge.collect.foreach(println)
+  
+}
+
+=====================================================================================
+
+            BoringWords
+
+import org.apache.spark.SparkContext
+import org.apache.log4j.Level
+import org.apache.log4j.Logger
+
+
+
+object KeywordAmount extends App {
+  
+def loadBoringWords(): Set[String] ={
+  
+  var boringWords:Set[String]= Set()
+  
+  val lines = Source.fromFile("/Users/syam/Desktop/boringWords.txt").getLines()
+  
+  for (line <- lines) {
+    boringWords += line
+  }
+  boringWords
+}
+ Logger.getLogger("org").setLevel(Level.ERROR)
+ 
+  val sc = new SparkContext("local[*]","wordcount")
+ 
+  var nameSet = sc.broadcast(loadBoringWords)
+  
+  val intial_rdd = sc.textFile("/users/syam/Downloads/bigdata-campaign-data.csv")
+  
+  val mappedInput = intial_rdd.map(x =>(x.split(",")(10).toFloat,x.split(",")(0)))
+  
+  val words = mappedInput.flatMapValues(x => x.split(" "))
+  
+  val finalMapped = words.map(x =>(x._2.toLowerCase(),x._1))
+  
+  val filterRdd = finalMapped.filter(x => !nameSet.value(x._1))
+  
+  val total = filterRdd.reduceByKey(_+_)
+  
+  val sorted = total.sortBy(x => x._2,false)
+  
+  sorted.take(20).foreach(println)
+}
+
+
+
+
+
+
+
+
+
